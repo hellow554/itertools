@@ -61,6 +61,7 @@ impl<T> Iterator for TupleBuffer<T>
         let len = if buffer.is_empty() {
             0
         } else {
+            #[allow(clippy::unnecessary_lazy_evaluations)]
             buffer.iter()
                   .position(|x| x.is_none())
                   .unwrap_or_else(|| buffer.len())

@@ -327,12 +327,7 @@ impl<I, J> Iterator for Product<I, J>
             }
             Some(x) => x
         };
-        match self.a_cur {
-            None => None,
-            Some(ref a) => {
-                Some((a.clone(), elt_b))
-            }
-        }
+        self.a_cur.as_ref().map(|a| (a.clone(), elt_b))
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
@@ -490,7 +485,6 @@ impl<T: PartialOrd> MergePredicate<T> for MergeLte {
 /// Iterator element type is `I::Item`.
 ///
 /// See [`.merge()`](crate::Itertools::merge_by) for more information.
-#[must_use = "iterator adaptors are lazy and do nothing unless consumed"]
 pub type Merge<I, J> = MergeBy<I, J, MergeLte>;
 
 /// Create an iterator that merges elements in `i` and `j`.
@@ -1033,7 +1027,7 @@ impl<I, F> Iterator for Positions<I, F>
     type Item = usize;
 
     fn next(&mut self) -> Option<Self::Item> {
-        while let Some(v) = self.iter.next() {
+        for v in self.iter.by_ref() {
             let i = self.count;
             self.count = i + 1;
             if (self.f)(v) {

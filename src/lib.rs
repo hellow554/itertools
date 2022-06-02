@@ -1748,12 +1748,10 @@ pub trait Itertools : Iterator {
     fn find_position<P>(&mut self, mut pred: P) -> Option<(usize, Self::Item)>
         where P: FnMut(&Self::Item) -> bool
     {
-        let mut index = 0usize;
-        for elt in self {
+        for (index, elt) in self.enumerate() {
             if pred(&elt) {
                 return Some((index, elt));
             }
-            index += 1;
         }
         None
     }
@@ -1797,7 +1795,7 @@ pub trait Itertools : Iterator {
         Some(if predicate(&first) {
             first
         } else {
-            self.find(|x| predicate(&x)).unwrap_or(first)
+            self.find(|x| predicate(x)).unwrap_or(first)
         })
     }
     /// Returns `true` if the given item is present in this iterator.

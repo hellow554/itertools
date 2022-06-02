@@ -104,7 +104,6 @@ fn sift_down<T, S>(heap: &mut [T], index: usize, mut less_than: S)
 /// Iterator element type is `I::Item`.
 ///
 /// See [`.kmerge()`](crate::Itertools::kmerge) for more information.
-#[must_use = "iterator adaptors are lazy and do nothing unless consumed"]
 pub type KMerge<I> = KMergeBy<I, KMergeByLt>;
 
 pub trait KMergePredicate<T> {
@@ -214,6 +213,7 @@ impl<I, F> Iterator for KMergeBy<I, F>
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
+        #[allow(deprecated)] //TODO: once msrv hits 1.51. replace `fold1` with `reduce`
         self.heap.iter()
                  .map(|i| i.size_hint())
                  .fold1(size_hint::add)
