@@ -116,7 +116,7 @@ fn chain2() {
 fn write_to() {
     let xs = [7, 9, 8];
     let mut ys = [0; 5];
-    let cnt = ys.iter_mut().set_from(xs.iter().map(|x| *x));
+    let cnt = ys.iter_mut().set_from(xs.iter().copied());
     assert!(cnt == xs.len());
     assert!(ys == [7, 9, 8, 0, 0]);
 
@@ -183,10 +183,7 @@ fn batching() {
     let pit = xs.iter().cloned().batching(|it| {
                match it.next() {
                    None => None,
-                   Some(x) => match it.next() {
-                       None => None,
-                       Some(y) => Some((x, y)),
-                   }
+                   Some(x) => it.next().map(|y| (x, y))
                }
            });
     it::assert_equal(pit, ys.iter().cloned());
@@ -234,7 +231,7 @@ fn count_clones() {
     // Check that RepeatN only clones N - 1 times.
 
     use core::cell::Cell;
-    #[derive(PartialEq, Debug)]
+    #[derive(PartialEq, Eq, Debug)]
     struct Foo {
         n: Cell<usize>
     }

@@ -258,12 +258,12 @@ where
         let mut it = get_it();
 
         for _ in 0..(counts.len() - 1) {
-            if let None = it.next() {
+            if it.next().is_none() {
                 panic!("Iterator shouldn't be finished, may not be deterministic");
             }
         }
 
-        if let None = it.next() {
+        if it.next().is_none() {
             break 'outer;
         }
 
@@ -438,7 +438,7 @@ quickcheck! {
         }
         assert_eq!(answer, actual);
 
-        assert_eq!(answer.into_iter().last(), a.clone().multi_cartesian_product().last());
+        assert_eq!(answer.into_iter().last(), a.multi_cartesian_product().last());
     }
 
     #[allow(deprecated)]
@@ -498,9 +498,7 @@ quickcheck! {
         exact_size(it)
     }
 
-    fn equal_merge(a: Vec<i16>, b: Vec<i16>) -> bool {
-        let mut sa = a.clone();
-        let mut sb = b.clone();
+    fn equal_merge(mut sa: Vec<i16>, mut sb: Vec<i16>) -> bool {
         sa.sort();
         sb.sort();
         let mut merged = sa.clone();
@@ -517,7 +515,7 @@ quickcheck! {
             exact_size(multizip((a, b, c)))
     }
     fn size_zip_rc(a: Iter<i16>, b: Iter<i16>) -> bool {
-        let rc = rciter(a.clone());
+        let rc = rciter(a);
         correct_size_hint(multizip((&rc, &rc, b)))
     }
 
@@ -526,11 +524,8 @@ quickcheck! {
         correct_size_hint(izip!(filt, b.clone(), c.clone())) &&
             exact_size(izip!(a, b, c))
     }
-    fn equal_kmerge(a: Vec<i16>, b: Vec<i16>, c: Vec<i16>) -> bool {
+    fn equal_kmerge(mut sa: Vec<i16>, mut sb: Vec<i16>, mut sc: Vec<i16>) -> bool {
         use itertools::free::kmerge;
-        let mut sa = a.clone();
-        let mut sb = b.clone();
-        let mut sc = c.clone();
         sa.sort();
         sb.sort();
         sc.sort();
@@ -610,7 +605,7 @@ quickcheck! {
     fn size_2_zip_longest(a: Iter<i16>, b: Iter<i16>) -> bool {
         let it = a.clone().zip_longest(b.clone());
         let jt = a.clone().zip_longest(b.clone());
-        itertools::equal(a.clone(),
+        itertools::equal(a,
                          it.filter_map(|elt| match elt {
                              EitherOrBoth::Both(x, _) => Some(x),
                              EitherOrBoth::Left(x) => Some(x),
@@ -618,7 +613,7 @@ quickcheck! {
                          }
                          ))
             &&
-        itertools::equal(b.clone(),
+        itertools::equal(b,
                          jt.filter_map(|elt| match elt {
                              EitherOrBoth::Both(_, y) => Some(y),
                              EitherOrBoth::Right(y) => Some(y),
@@ -721,7 +716,7 @@ quickcheck! {
 
         assert_eq!(expected_first, curr_perm);
 
-        while let Some(next_perm) = perms.next() {
+        for next_perm in perms {
             assert!(
                 next_perm > curr_perm,
                 "next perm isn't greater-than current; next_perm={:?} curr_perm={:?} n={}",
@@ -943,8 +938,7 @@ quickcheck! {
     fn fuzz_group_by_lazy_1(it: Iter<u8>) -> bool {
         let jt = it.clone();
         let groups = it.group_by(|k| *k);
-        let res = itertools::equal(jt, groups.into_iter().flat_map(|(_, x)| x));
-        res
+        itertools::equal(jt, groups.into_iter().flat_map(|(_, x)| x))
     }
 }
 
@@ -1286,7 +1280,7 @@ quickcheck! {
             .map(|i| (i % modulo, i))
             .into_group_map()
             .into_iter()
-            .map(|(key, vals)| (key, vals.into_iter().fold(0u64, |acc, val| acc + val)))
+            .map(|(key, vals)| (key, vals.into_iter().sum()))
             .collect::<HashMap<_,_>>();
         assert_eq!(lookup, group_map_lookup);
 
@@ -1304,7 +1298,7 @@ quickcheck! {
                 acc + val
             });
 
-        // TODO: Swap `fold1` with stdlib's `fold_first` when it's stabilized
+        #[allow(deprecated)] //TODO: once msrv hits 1.51. replace `fold1` with `reduce`
         let group_map_lookup = a.iter()
             .map(|&b| b as u64)
             .map(|i| (i % modulo, i))
@@ -1551,11 +1545,10 @@ quickcheck! {
 }
 
 quickcheck! {
-    #[test]
     fn counts(nums: Vec<isize>) -> TestResult {
         let counts = nums.iter().counts();
         for (&item, &count) in counts.iter() {
-            if count <= 0 {
+            if count == 0 {
                 return TestResult::failed();
             }
             if count != nums.iter().filter(|&x| x == item).count() {
@@ -1602,7 +1595,7 @@ quickcheck! {
 
 fn is_fused<I: Iterator>(mut it: I) -> bool
 {
-    while let Some(_) = it.next() {}
+    for _ in it.by_ref() {}
     for _ in 0..10{
         if it.next().is_some(){
             return false;
